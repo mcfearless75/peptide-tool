@@ -118,6 +118,16 @@
   .pitem .pl .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pcat{font-size:.66rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;flex:0 0 auto}
   .pitem:focus-visible,.fbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* sticky IU bar */
+  .stickyiu{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));z-index:50;display:flex;align-items:center;gap:13px;background:rgba(22,32,51,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid #2d4257;border-radius:999px;padding:10px 18px;font-family:var(--font);color:var(--txt);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45);max-width:calc(100vw - 28px);opacity:0;pointer-events:none;transform:translateX(-50%) translateY(120%);transition:transform .3s ease,opacity .3s ease}
+  .stickyiu.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+  .stickyiu:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .si-name{font-size:.8rem;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+  .si-val{font-size:.95rem;font-weight:700;white-space:nowrap}
+  .si-val b{color:var(--accent);font-size:1.15rem}
+  .si-dose{color:var(--mut);font-weight:400;font-size:.78rem}
+  @media (max-width:380px){.si-name{max-width:96px}}
   .empty{color:var(--mut);font-size:.85rem;text-align:center;padding:18px}
 
 </style>
@@ -170,6 +180,11 @@
     <strong>Profile is reference information; the calculator converts a dose you choose into IU.</strong> This tool does not set dose, frequency or cycling — those are clinical decisions. Compounds are research-use; evidence status varies and many lack validated human dosing. Store reconstituted vials at 2–8°C (don't freeze), use within ~3–4 weeks; blends follow the shorter-lived peptide. Always use sterile technique.
   </div>
   <div class="foot">CC PEP · U-100 basis: 1 mL = 100 IU</div>
+
+  <button class="stickyiu" id="stickyiu" aria-hidden="true" tabindex="-1" title="Jump to result">
+    <span class="si-name" id="siName">—</span>
+    <span class="si-val"><b id="siIU">—</b> IU <span class="si-dose" id="siDose"></span></span>
+  </button>
 
 <script>
   const CAT={Recovery:"#2dd4bf",Metabolic:"#f59e0b",GH:"#a78bfa",Cosmetic:"#f472b6",Nootropic:"#60a5fa","Weight loss":"#34d399",Sleep:"#818cf8",Other:"#94a3b8"};
@@ -249,6 +264,10 @@
     $('conc').textContent='Concentration: '+round(conc)+' mg/mL';
     countTo(lastIU,iu);lastIU=iu;
     $('keyLine').textContent='Key: 1 mg = '+round(iuPerMg)+' IU';
+    $('siName').textContent=cur.n;
+    $('siIU').textContent=round(iu);
+    $('siDose').textContent=dose?'@ '+fmtDose(dose):'';
+    updateSticky();
     $('blendLine').style.display=isB?'block':'none';
     $('splitHead').style.display=isB?'table-cell':'none';
     const big=$('bigWrap');big.classList.remove('pulse');void big.offsetWidth;big.classList.add('pulse');
@@ -271,6 +290,21 @@
   function round(n){return Math.round(n*1000)/1000;}
   function hex2rgba(h,a){const n=parseInt(h.slice(1),16);return'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
   [vialMg,bacMl,doseMg].forEach(el=>el.addEventListener('input',()=>calc(false)));
+
+  const sticky=$('stickyiu'),resultCard=document.querySelector('.result');
+  let resultVisible=true;
+  function updateSticky(){
+    const show=!resultVisible&&lastIU>0;
+    sticky.classList.toggle('show',show);
+    sticky.setAttribute('aria-hidden',String(!show));
+    sticky.tabIndex=show?0:-1;
+  }
+  new IntersectionObserver(es=>{resultVisible=es[0].isIntersecting;updateSticky();},{threshold:.25}).observe(resultCard);
+  sticky.addEventListener('click',()=>{
+    const rm=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    resultCard.scrollIntoView({behavior:rm?'auto':'smooth',block:'center'});
+  });
+
   renderList();render();load(0);
 </script>
 </body>
