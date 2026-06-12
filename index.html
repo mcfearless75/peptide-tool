@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC PEP — Peptide Reference & Reconstitution Tool</title>
+<style>
+  :root{
+    --bg:#0e1116;--panel:#161b22;--panel2:#1c232d;--line:#2a323d;
+    --txt:#e6edf3;--mut:#8b96a5;--accent:#4ea1ff;--accent2:#22c55e;--warn:#f59e0b;--radius:14px;
+    --font:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:radial-gradient(900px 500px at 50% -10%,#16202e 0%,var(--bg) 55%);color:var(--txt);font-family:var(--font);line-height:1.55;padding:24px 20px 40px;max-width:780px;margin:0 auto;-webkit-font-smoothing:antialiased}
+  h1{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;animation:fadeDown .5s ease both}
+  .sub{color:var(--mut);font-size:.9rem;margin-top:4px;margin-bottom:20px;animation:fadeDown .5s .05s ease both}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;animation:rise .5s ease both}
+  .card:nth-of-type(2){animation-delay:.08s}.card:nth-of-type(3){animation-delay:.12s}
+  label{display:block;font-size:.78rem;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+  select,input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:13px 14px;border-radius:10px;font-size:1.05rem;font-family:var(--font);transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+  select{cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:38px}
+  select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(78,161,255,.15)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .field{margin-bottom:14px}
+  .pepname{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .badge{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:999px;transition:.3s}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-size:.78rem;transition:transform .15s,border-color .15s}
+  .chip:hover{transform:translateY(-2px);border-color:var(--accent)}
+  .chip b{color:var(--txt)}.chip span{color:var(--mut)}
+  .sec{margin-bottom:13px}
+  .sec h4{font-size:.72rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .benefits{list-style:none;display:flex;flex-direction:column;gap:4px}
+  .benefits li{font-size:.9rem;padding-left:18px;position:relative;animation:slideIn .4s ease both}
+  .benefits li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px rgba(34,197,94,.5)}
+  .pairs{font-size:.88rem;color:var(--txt)}.pairs span{color:var(--mut)}
+  .caution{font-size:.84rem;background:rgba(245,158,11,.08);border-left:3px solid var(--warn);border-radius:8px;padding:9px 12px;color:#f5d99a}
+  .evidence{font-size:.8rem;color:var(--mut);font-style:italic;margin-top:10px}
+  #panel{transition:opacity .25s ease,transform .25s ease}
+  #panel.swap{opacity:0;transform:translateY(8px)}
+  .rec{font-size:.78rem;color:var(--accent2);margin-top:5px}
+  .result{background:linear-gradient(135deg,#162033,#1a2a1f);border:1px solid #2d4257;border-radius:var(--radius);padding:24px 22px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden;animation:rise .5s .1s ease both}
+  .result::after{content:"";position:absolute;inset:0;background:radial-gradient(400px 120px at 50% 0,rgba(78,161,255,.10),transparent 70%);pointer-events:none}
+  .conc{font-size:.85rem;color:var(--mut);margin-bottom:6px}
+  .big{font-size:2.8rem;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .big.pulse{animation:pop .35s ease}
+  .big .iu{color:var(--accent)}
+  .key{font-size:.9rem;color:var(--accent2);margin-top:10px;font-weight:600}
+  .blend{font-size:.82rem;color:var(--warn);margin-top:8px;display:none}
+  table{width:100%;border-collapse:collapse;margin-top:4px}
+  th,td{text-align:left;padding:10px 12px;font-size:.9rem;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  tbody tr{animation:slideIn .35s ease both}
+  td.iu{color:var(--accent);font-weight:600}
+  .ctitle{font-size:.78rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+  .note{font-size:.8rem;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:8px;padding:13px 15px;margin-top:6px}
+  .foot{font-size:.72rem;color:var(--mut);text-align:center;margin-top:22px;opacity:.7}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @media (max-width:520px){
+    body{padding:18px 14px 36px}
+    h1{font-size:1.3rem}
+    .sub{font-size:.85rem;margin-bottom:16px}
+    .card{padding:16px;border-radius:12px;margin-bottom:14px}
+    .row{grid-template-columns:1fr;gap:12px;margin-bottom:12px}
+    .big{font-size:2.4rem}
+    .pepname{font-size:1.12rem}
+    select,input{font-size:1rem;padding:14px}
+    th,td{padding:9px 8px;font-size:.85rem}
+    .chip{font-size:.74rem;padding:6px 9px}
+  }
+  @media (hover:none){.chip:hover{transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* search + filter picker */
+  .search{position:relative;margin-bottom:12px}
+  .search input{padding-left:40px}
+  .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--mut);pointer-events:none}
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+  .fbtn{background:var(--panel2);border:1px solid var(--line);color:var(--mut);font-family:var(--font);font-size:.74rem;font-weight:600;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .fbtn:hover{border-color:var(--accent);color:var(--txt)}
+  .fbtn.on{background:var(--accent);border-color:var(--accent);color:#06101c}
+  .picklist{max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;-webkit-overflow-scrolling:touch}
+  .picklist::-webkit-scrollbar{width:8px}.picklist::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .pitem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;transition:.13s;text-align:left}
+  .pitem:hover{border-color:var(--accent);transform:translateX(2px)}
+  .pitem.on{border-color:var(--accent);background:rgba(78,161,255,.10)}
+  .pitem .pn{font-size:.95rem;font-weight:600}
+  .pitem .pdot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .pitem .pl{display:flex;align-items:center;gap:9px;min-width:0}
+  .pitem .pl .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pcat{font-size:.66rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;flex:0 0 auto}
+  .empty{color:var(--mut);font-size:.85rem;text-align:center;padding:18px}
+
+</style>
+</head>
+<body>
+  <h1>Peptide Reference &amp; Reconstitution Tool</h1>
+  <div class="sub">CC PEP — pick a peptide for the full profile, then set vial mg &amp; bac water for your IU draw.</div>
+
+  <div class="card">
+    <label>Find a peptide</label>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" id="q" placeholder="Search name or category…" autocomplete="off">
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="picklist" id="picklist"></div>
+  </div>
+
+  <div class="card" id="panel">
+    <div class="pepname" id="pname">—</div>
+    <div class="chips" id="chips"></div>
+    <div class="sec"><h4>Commonly researched for</h4><ul class="benefits" id="benefits"></ul></div>
+    <div class="sec"><h4>Commonly paired with</h4><div class="pairs" id="pairs"></div></div>
+    <div class="caution" id="caution"></div>
+    <div class="evidence" id="evidence"></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Reconstitution &amp; IU draw</div>
+    <div class="row">
+      <div class="field" style="margin:0"><label>Peptide in vial (mg)</label><input type="number" inputmode="decimal" id="vialMg" step="0.5"><div class="rec" id="recMg"></div></div>
+      <div class="field" style="margin:0"><label>Bac water (mL)</label><input type="number" inputmode="decimal" id="bacMl" step="0.1"><div class="rec" id="recBac"></div></div>
+    </div>
+    <div class="field" style="margin:0"><label>Your target dose (mg)</label><input type="number" inputmode="decimal" id="doseMg" step="0.05"></div>
+  </div>
+
+  <div class="result">
+    <div class="conc" id="conc">—</div>
+    <div class="big" id="bigWrap"><span id="iu">—</span> <span class="iu">IU</span></div>
+    <div class="key" id="keyLine">—</div>
+    <div class="blend" id="blendLine">1:1 blend — this draw splits evenly between the two peptides</div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">IU conversion reference (this concentration)</div>
+    <table><thead><tr><th>Dose</th><th>IU to draw</th><th id="splitHead" style="display:none">Each peptide</th><th>Doses/vial</th></tr></thead><tbody id="refBody"></tbody></table>
+  </div>
+
+  <div class="note">
+    <strong>Profile is reference information; the calculator converts a dose you choose into IU.</strong> This tool does not set dose, frequency or cycling — those are clinical decisions. Compounds are research-use; evidence status varies and many lack validated human dosing. Store reconstituted vials at 2–8°C (don't freeze), use within ~3–4 weeks; blends follow the shorter-lived peptide. Always use sterile technique.
+  </div>
+  <div class="foot">CC PEP · U-100 basis: 1 mL = 100 IU</div>
+
+<script>
+  const CAT={Recovery:"#2dd4bf",Metabolic:"#f59e0b",GH:"#a78bfa",Cosmetic:"#f472b6",Nootropic:"#60a5fa","Weight loss":"#34d399",Sleep:"#818cf8",Other:"#94a3b8"};
+  const PEPS=[
+    {n:"BPC-157",mg:10,bac:2,cat:"Recovery",route:"SubQ",half:"~4 hrs",ben:["Tendon, ligament &amp; muscle tissue repair","Gut lining healing &amp; GI protection","Anti-inflammatory action","Joint &amp; injury recovery support"],pairs:"TB-500, KPV",caution:"Generally well tolerated in research. Research-use only.",ev:"Strong animal data; limited human trials.",steps:[0.25,0.5,1]},
+    {n:"TB-500",mg:10,bac:2,cat:"Recovery",route:"SubQ",half:"~2–3 days",ben:["Soft-tissue &amp; muscle repair","Improved flexibility &amp; range of motion","Reduced inflammation","Systemic recovery support"],pairs:"BPC-157 (classic healing stack)",caution:"Research-use only. Not typically run long-term.",ev:"Animal-derived; limited human data.",steps:[1,2.5,5]},
+    {n:"BPC-157 + TB-500 blend",mg:20,bac:4,blend:true,cat:"Recovery",route:"SubQ",half:"mixed",ben:["Combined tissue + soft-tissue repair","Gut &amp; systemic recovery in one vial","The go-to injury/recovery stack"],pairs:"KPV (for gut/skin focus)",caution:"1:1 blend. Shelf life follows the shorter-lived peptide.",ev:"Based on each component's animal data.",steps:[0.5,1,2]},
+    {n:"KPV",mg:10,bac:2,cat:"Recovery",route:"SubQ",half:"short",ben:["Gut inflammation &amp; IBD support","Immune modulation","Skin inflammation support"],pairs:"BPC-157",caution:"Research-use only.",ev:"Preclinical; emerging.",steps:[0.1,0.2,0.4]},
+    {n:"MOTS-c",mg:10,bac:1,cat:"Metabolic",route:"SubQ",half:"short",ben:["Mitochondrial function &amp; energy","Improved insulin sensitivity","Fat metabolism / exercise-mimetic effects","Endurance support"],pairs:"SLU-PP-332, NAD+",caution:"May affect glucose — relevant if monitoring blood sugar.",ev:"Mostly animal data; no completed human trials.",steps:[2,5,10]},
+    {n:"GHK-Cu",mg:50,bac:5,cat:"Cosmetic",route:"SubQ / topical",half:"short",ben:["Collagen &amp; elastin stimulation","Wound healing &amp; skin repair","Anti-ageing / skin firmness","Hair follicle &amp; scalp support"],pairs:"BPC-157, AHK-Cu",caution:"Can be used topically or injected. Copper peptide.",ev:"Some human skin/cosmetic data — better evidenced than most.",steps:[1,2,3]},
+    {n:"Semax",mg:10,bac:2,cat:"Nootropic",route:"SubQ / intranasal",half:"short",ben:["Focus, drive &amp; mental clarity","Cognition &amp; memory support","Neuroprotection (BDNF)","Mood support"],pairs:"Selank ('focus &amp; calm')",caution:"Acts on brain chemistry. Research-use only.",ev:"Approved/prescribed in Russia; thin Western trial data.",steps:[0.3,0.5,1]},
+    {n:"Selank",mg:10,bac:2,cat:"Nootropic",route:"SubQ / intranasal",half:"short",ben:["Anxiety reduction without sedation","Calm &amp; stress resilience","Mood support","Mild immune modulation"],pairs:"Semax",caution:"Acts on mood/anxiety systems. Research-use only.",ev:"Approved/prescribed in Russia; thin Western trial data.",steps:[0.25,0.5,1]},
+    {n:"Semax + Selank blend",mg:20,bac:4,blend:true,cat:"Nootropic",route:"SubQ / intranasal",half:"short",ben:["'Switched-on but calm' — focus + anxiolytic","Cognition with stress reduction","One-vial nootropic stack"],pairs:"—",caution:"1:1 blend acting on brain chemistry.",ev:"Russian clinical pedigree; self-reported for nootropic use.",steps:[0.5,1,2]},
+    {n:"Tesamorelin",mg:10,bac:2,cat:"GH",route:"SubQ",half:"~26 min",ben:["GH / IGF-1 increase","Visceral (belly) fat reduction","Body recomposition","Cognitive support (studied in HIV/ageing)"],pairs:"Ipamorelin, CJC-1295",caution:"Prescription medicine. Monitor IGF-1 &amp; glucose; contraindicated around active cancer.",ev:"FDA-approved (lipodystrophy); off-label otherwise.",steps:[1,2,4]},
+    {n:"Retatrutide",mg:30,bac:3,cat:"Weight loss",route:"SubQ",half:"~6 days",ben:["Significant appetite suppression","Strong weight reduction","Improved glycaemic control","Triple agonist (GLP-1/GIP/glucagon)"],pairs:"—",caution:"Prescription medicine. Titrate slowly; GI side effects; manage hydration/diet.",ev:"In human trials; not yet approved.",steps:[2,4,8]},
+    {n:"Semaglutide",mg:10,bac:1,cat:"Weight loss",route:"SubQ",half:"~7 days",ben:["Appetite suppression","Weight management","Glycaemic control","Best-known GLP-1"],pairs:"Cagrilintide (CagriSema)",caution:"Prescription medicine. GI side effects common; titrate.",ev:"FDA/MHRA-approved.",steps:[0.25,0.5,1]},
+    {n:"Tirzepatide",mg:30,bac:3,cat:"Weight loss",route:"SubQ",half:"~5 days",ben:["Powerful appetite suppression","Strong weight reduction","Glycaemic control","Dual agonist (GLP-1/GIP)"],pairs:"—",caution:"Prescription medicine. GI side effects; titrate slowly.",ev:"FDA/MHRA-approved.",steps:[2.5,5,10]},
+    {n:"Cagrilintide",mg:10,bac:1,cat:"Weight loss",route:"SubQ",half:"long",ben:["Appetite &amp; satiety control","Weight management","Amylin analogue — complements GLP-1s"],pairs:"Semaglutide (CagriSema)",caution:"Research-use. Often run with a GLP-1.",ev:"In human trials.",steps:[0.5,1,2]},
+    {n:"IGF-1 LR3",mg:1,bac:1,cat:"GH",route:"SubQ",half:"~20–30 hrs",ben:["Muscle growth &amp; hyperplasia","Cellular repair","Anabolic signalling","Nutrient partitioning"],pairs:"—",caution:"Potent. Hypoglycaemia risk; contraindicated around cancer; monitor closely.",ev:"Strong mechanism; high-risk, hardcore use.",steps:[0.02,0.04,0.06]},
+    {n:"SLU-PP-332 (MitoBurn)",mg:10,bac:2,cat:"Metabolic",route:"SubQ / oral",half:"short",ben:["Fat oxidation &amp; endurance","Mitochondrial biogenesis","Metabolic health markers","Exercise-mimetic (ERR\u03b1 agonist)"],pairs:"MOTS-c",caution:"Largely animal data. WADA doping-flagged — relevant for tested athletes.",ev:"Preclinical; no human trials.",steps:[0.5,1,2]},
+    {n:"CJC-1295 (no DAC)",mg:5,bac:2,cat:"GH",route:"SubQ",half:"~30 min",ben:["Pulsatile GH release","Recovery &amp; sleep quality","Body composition support","Mimics natural GH rhythm"],pairs:"Ipamorelin (the classic stack)",caution:"Short-acting (multi-jab protocol). GH-axis caution; cancer contraindication.",ev:"Well-understood mechanism; convention dosing.",steps:[0.1,0.2,0.3]},
+    {n:"Ipamorelin",mg:5,bac:2,cat:"GH",route:"SubQ",half:"~2 hrs",ben:["Selective GH release","Recovery &amp; sleep","Clean profile (low cortisol/prolactin)"],pairs:"CJC-1295 (no DAC)",caution:"GH-axis caution; cancer contraindication.",ev:"Well-characterised GHRP.",steps:[0.1,0.2,0.3]},
+    {n:"CJC-1295 + Ipamorelin blend",mg:10,bac:2,blend:true,cat:"GH",route:"SubQ",half:"mixed",ben:["Synergistic GH pulse (two pathways)","Recovery, sleep &amp; body comp","Best-selling GH stack in one vial"],pairs:"—",caution:"1:1 blend. Multi-jab protocol; GH-axis &amp; cancer caution.",ev:"Component mechanisms well-understood.",steps:[0.2,0.25,0.3]},
+    {n:"NAD+",mg:1000,bac:5,cat:"Metabolic",route:"SubQ / IV",half:"short",ben:["Cellular energy (NAD repletion)","Mitochondrial support","Longevity / healthspan interest","Cognitive &amp; metabolic support"],pairs:"MOTS-c, 5-amino-1MQ",caution:"Confirm COA shows NAD+ disodium salt (not NADH / precursor). SubQ can sting.",ev:"Mechanism sound; clinical claims mostly extrapolated.",steps:[50,100,250]},
+    {n:"Melanotan II (MT2)",mg:10,bac:2,cat:"Other",route:"SubQ",half:"~1 hr",ben:["Skin tanning / pigmentation","Libido enhancement","Appetite suppression"],pairs:"—",caution:"Start low. Monitor moles/skin changes; nausea &amp; flushing common; use SPF.",ev:"Known mechanism; safety concerns with darkening moles.",steps:[0.25,0.5,1]},
+    {n:"DSIP",mg:5,bac:2,cat:"Sleep",route:"SubQ",half:"short",ben:["Sleep onset &amp; quality","Stress / cortisol modulation","Recovery support"],pairs:"—",caution:"Research-use. Effects inconsistent in studies.",ev:"Old, soft evidence; never an approved therapy.",steps:[0.1,0.25,0.5]},
+    {n:"PT-141 (Bremelanotide)",mg:10,bac:2,cat:"Other",route:"SubQ",half:"~2–3 hrs",ben:["Sexual arousal &amp; function (men &amp; women)","Central (brain) mechanism, not vascular"],pairs:"—",caution:"Nausea &amp; transient blood-pressure rise common. Is an approved drug (Vyleesi).",ev:"FDA-approved for HSDD in women.",steps:[0.5,1,2]},
+  ];
+  const $=id=>document.getElementById(id);
+  const vialMg=$('vialMg'),bacMl=$('bacMl'),doseMg=$('doseMg'),panel=$('panel');
+  const q=$('q'),picklist=$('picklist'),filtersEl=$('filters');
+  let cur=PEPS[0],lastIU=0,activeCat="All",curIdx=0;
+  const cats=["All",...[...new Set(PEPS.map(p=>p.cat))]];
+  cats.forEach(c=>{const b=document.createElement('button');b.className='fbtn'+(c==="All"?' on':'');b.textContent=c;b.onclick=()=>{activeCat=c;[...filtersEl.children].forEach(x=>x.classList.toggle('on',x.textContent===c));renderList();};filtersEl.appendChild(b);});
+  function renderList(){
+    const term=q.value.trim().toLowerCase();
+    picklist.innerHTML='';
+    let shown=0;
+    PEPS.forEach((p,i)=>{
+      const okCat=activeCat==="All"||p.cat===activeCat;
+      const okTerm=!term||p.n.toLowerCase().includes(term)||p.cat.toLowerCase().includes(term);
+      if(!okCat||!okTerm)return;
+      shown++;
+      const c=CAT[p.cat]||CAT.Other;
+      const el=document.createElement('button');
+      el.className='pitem'+(i===curIdx?' on':'');
+      el.innerHTML='<div class="pl"><span class="pdot" style="background:'+c+'"></span><span class="pn">'+p.n+'</span></div><span class="pcat">'+p.cat+'</span>';
+      el.onclick=()=>{load(i);[...picklist.children].forEach(x=>x.classList.remove('on'));el.classList.add('on');};
+      picklist.appendChild(el);
+    });
+    if(!shown)picklist.innerHTML='<div class="empty">No peptides match.</div>';
+  }
+  q.addEventListener('input',renderList);
+  function render(){
+    const c=CAT[cur.cat]||CAT.Other;
+    $('pname').innerHTML=cur.n+' <span class="badge" style="background:'+hex2rgba(c,.16)+';color:'+c+'">'+cur.cat+'</span>';
+    $('chips').innerHTML='<div class="chip"><span>Route</span> <b>'+cur.route+'</b></div><div class="chip"><span>Half-life</span> <b>'+cur.half+'</b></div><div class="chip"><span>Typical vial</span> <b>'+cur.mg+'mg</b></div>';
+    $('benefits').innerHTML=cur.ben.map((b,i)=>'<li style="animation-delay:'+(i*.06)+'s">'+b+'</li>').join('');
+    $('pairs').innerHTML=cur.pairs==='—'?'<span>Usually run on its own</span>':cur.pairs;
+    $('caution').innerHTML='\u26a0\ufe0f '+cur.caution;
+    $('evidence').textContent='Evidence: '+cur.ev;
+  }
+  function load(i){
+    cur=PEPS[i];curIdx=i;
+    panel.classList.add('swap');
+    setTimeout(()=>{render();panel.classList.remove('swap');},180);
+    vialMg.value=cur.mg;bacMl.value=cur.bac;doseMg.value=cur.steps[1];
+    $('recMg').textContent='typical: '+cur.mg+'mg';
+    $('recBac').textContent='recommended: '+cur.bac+'mL';
+    calc(true);
+  }
+  function calc(animate){
+    const mg=parseFloat(vialMg.value),bac=parseFloat(bacMl.value),dose=parseFloat(doseMg.value);
+    const isB=!!cur.blend;
+    if(!mg||!bac){$('conc').textContent='Enter vial mg and bac water';$('iu').textContent='—';return;}
+    const conc=mg/bac,iuPerMg=100/conc,iu=dose?(dose/conc)*100:0;
+    $('conc').textContent='Concentration: '+round(conc)+' mg/mL';
+    countTo(lastIU,iu);lastIU=iu;
+    $('keyLine').textContent='Key: 1 mg = '+round(iuPerMg)+' IU';
+    $('blendLine').style.display=isB?'block':'none';
+    $('splitHead').style.display=isB?'table-cell':'none';
+    const big=$('bigWrap');big.classList.remove('pulse');void big.offsetWidth;big.classList.add('pulse');
+    const body=$('refBody');body.innerHTML='';
+    cur.steps.forEach((d,i)=>{
+      const di=(d/conc)*100,per=Math.floor(mg/d);
+      let cells='<td>'+fmtDose(d)+'</td><td class="iu">'+round(di)+' IU</td>';
+      if(isB)cells+='<td>'+fmtDose(d/2)+' + '+fmtDose(d/2)+'</td>';
+      cells+='<td>'+per+'\u00d7</td>';
+      const tr=document.createElement('tr');tr.style.animationDelay=(i*.05)+'s';tr.innerHTML=cells;body.appendChild(tr);
+    });
+  }
+  function countTo(from,to){
+    const el=$('iu');if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){el.textContent=round(to);return;}
+    const dur=350,t0=performance.now();
+    function step(t){const k=Math.min((t-t0)/dur,1),e=1-Math.pow(1-k,3),v=from+(to-from)*e;el.textContent=round(v);if(k<1)requestAnimationFrame(step);}
+    requestAnimationFrame(step);
+  }
+  function fmtDose(d){return d<1?Math.round(d*1000)+'mcg':round(d)+'mg';}
+  function round(n){return Math.round(n*1000)/1000;}
+  function hex2rgba(h,a){const n=parseInt(h.slice(1),16);return'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
+  [vialMg,bacMl,doseMg].forEach(el=>el.addEventListener('input',()=>calc(false)));
+  renderList();render();load(0);
+</script>
+</body>
+</html>
