@@ -2,7 +2,8 @@
 <html lang="en-GB">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
 <title>CC PEP — Peptide Reference & Reconstitution Tool</title>
 <style>
   :root{
@@ -12,7 +13,7 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{-webkit-text-size-adjust:100%}
-  body{background:radial-gradient(900px 500px at 50% -10%,#16202e 0%,var(--bg) 55%);color:var(--txt);font-family:var(--font);line-height:1.55;padding:24px 20px 40px;max-width:780px;margin:0 auto;-webkit-font-smoothing:antialiased}
+  body{background:radial-gradient(900px 500px at 50% -10%,#16202e 0%,var(--bg) 55%);color:var(--txt);font-family:var(--font);line-height:1.55;padding:24px 20px 40px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-bottom:max(40px,env(safe-area-inset-bottom));max-width:780px;margin:0 auto;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
   h1{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;animation:fadeDown .5s ease both}
   .sub{color:var(--mut);font-size:.9rem;margin-top:4px;margin-bottom:20px;animation:fadeDown .5s .05s ease both}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;animation:rise .5s ease both}
@@ -48,7 +49,9 @@
   .big .iu{color:var(--accent)}
   .key{font-size:.9rem;color:var(--accent2);margin-top:10px;font-weight:600}
   .blend{font-size:.82rem;color:var(--warn);margin-top:8px;display:none}
-  table{width:100%;border-collapse:collapse;margin-top:4px}
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;margin-top:4px;min-width:300px}
+  th,td{white-space:nowrap}
   th,td{text-align:left;padding:10px 12px;font-size:.9rem;border-bottom:1px solid var(--line)}
   th{color:var(--mut);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
   tbody tr{animation:slideIn .35s ease both}
@@ -60,19 +63,40 @@
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
   @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
   @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @media (max-width:640px){
+    .row{grid-template-columns:1fr 1fr;gap:12px}
+  }
   @media (max-width:520px){
-    body{padding:18px 14px 36px}
+    body{padding:18px 14px 36px;padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));padding-bottom:max(36px,env(safe-area-inset-bottom))}
     h1{font-size:1.3rem}
     .sub{font-size:.85rem;margin-bottom:16px}
     .card{padding:16px;border-radius:12px;margin-bottom:14px}
     .row{grid-template-columns:1fr;gap:12px;margin-bottom:12px}
     .big{font-size:2.4rem}
     .pepname{font-size:1.12rem}
-    select,input{font-size:1rem;padding:14px}
+    select,input{font-size:16px;padding:14px}
     th,td{padding:9px 8px;font-size:.85rem}
-    .chip{font-size:.74rem;padding:6px 9px}
+    .chip{font-size:.74rem;padding:8px 10px}
+    .fbtn{padding:9px 13px;min-height:40px}
+    .pitem{min-height:48px}
+    .picklist{max-height:260px}
+    .filters{gap:6px}
+    .result{padding:20px 16px}
   }
-  @media (hover:none){.chip:hover{transform:none}}
+  @media (max-width:360px){
+    h1{font-size:1.18rem}
+    .big{font-size:2rem}
+    th,td{padding:8px 5px;font-size:.78rem}
+    .chip{font-size:.7rem;padding:7px 8px}
+    .chips{gap:6px}
+    .pcat{display:none}
+  }
+  @media (hover:none){
+    .chip:hover{transform:none}
+    .pitem:hover{transform:none}
+    .pitem:active{border-color:var(--accent);background:rgba(78,161,255,.10)}
+    .fbtn:active{border-color:var(--accent);color:var(--txt)}
+  }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
   /* search + filter picker */
@@ -80,12 +104,12 @@
   .search input{padding-left:40px}
   .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--mut);pointer-events:none}
   .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
-  .fbtn{background:var(--panel2);border:1px solid var(--line);color:var(--mut);font-family:var(--font);font-size:.74rem;font-weight:600;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .fbtn{background:var(--panel2);border:1px solid var(--line);color:var(--mut);font-family:var(--font);font-size:.74rem;font-weight:600;padding:8px 13px;min-height:36px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap;touch-action:manipulation}
   .fbtn:hover{border-color:var(--accent);color:var(--txt)}
   .fbtn.on{background:var(--accent);border-color:var(--accent);color:#06101c}
   .picklist{max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;-webkit-overflow-scrolling:touch}
   .picklist::-webkit-scrollbar{width:8px}.picklist::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
-  .pitem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;transition:.13s;text-align:left}
+  .pitem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;min-height:44px;cursor:pointer;transition:.13s;text-align:left;font-family:var(--font);color:var(--txt);touch-action:manipulation}
   .pitem:hover{border-color:var(--accent);transform:translateX(2px)}
   .pitem.on{border-color:var(--accent);background:rgba(78,161,255,.10)}
   .pitem .pn{font-size:.95rem;font-weight:600}
@@ -138,7 +162,7 @@
 
   <div class="card">
     <div class="ctitle">IU conversion reference (this concentration)</div>
-    <table><thead><tr><th>Dose</th><th>IU to draw</th><th id="splitHead" style="display:none">Each peptide</th><th>Doses/vial</th></tr></thead><tbody id="refBody"></tbody></table>
+    <div class="tscroll"><table><thead><tr><th>Dose</th><th>IU to draw</th><th id="splitHead" style="display:none">Each peptide</th><th>Doses/vial</th></tr></thead><tbody id="refBody"></tbody></table></div>
   </div>
 
   <div class="note">
