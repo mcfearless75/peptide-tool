@@ -130,6 +130,32 @@
   @media (max-width:380px){.si-name{max-width:96px}}
   .empty{color:var(--mut);font-size:.85rem;text-align:center;padding:18px}
 
+  /* stack bar */
+  .stack-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .stack-chip{display:flex;flex-direction:column;justify-content:center;background:rgba(78,161,255,.12);border:1px solid rgba(78,161,255,.25);border-radius:8px;padding:6px 11px;min-height:44px;cursor:pointer;font-family:var(--font);touch-action:manipulation;transition:.15s}
+  .stack-chip .sc-name{font-size:.82rem;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:5px}
+  .stack-chip .sc-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+  .stack-chip .sc-when{font-size:.68rem;color:var(--mut);margin-top:1px}
+  .stack-chip:hover{border-color:var(--accent)}
+  .stack-chip:active{background:rgba(78,161,255,.20)}
+  /* star button */
+  .star-btn{background:none;border:none;padding:4px;cursor:pointer;font-size:1.1rem;color:var(--mut);flex:0 0 auto;line-height:1;touch-action:manipulation;transition:color .15s}
+  .star-btn.on{color:#f59e0b}
+  .star-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* log wrap */
+  .log-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .log-btn{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);color:var(--accent2);font-family:var(--font);font-size:.88rem;font-weight:600;padding:10px 18px;min-height:44px;border-radius:999px;cursor:pointer;touch-action:manipulation;transition:.15s}
+  .log-btn:hover{background:rgba(34,197,94,.25);border-color:var(--accent2)}
+  .log-btn:active{background:rgba(34,197,94,.32)}
+  .log-btn.logged{background:rgba(34,197,94,.40);border-color:var(--accent2)}
+  .log-btn:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+  .last-dose{font-size:.75rem;color:var(--mut)}
+  /* dose history card */
+  .hist-empty{color:var(--mut);font-size:.83rem;text-align:center;padding:14px}
+  .de-del{background:none;border:none;color:var(--mut);font-size:1rem;cursor:pointer;padding:2px 5px;line-height:1;font-family:var(--font);transition:color .15s}
+  .de-del:hover{color:#f87171}
+  .de-del:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
 </style>
 </head>
 <body>
@@ -143,6 +169,7 @@
       <input type="text" id="q" placeholder="Search name or category…" autocomplete="off">
     </div>
     <div class="filters" id="filters"></div>
+    <div id="stackBar" class="stack-bar" style="display:none"></div>
     <div class="picklist" id="picklist"></div>
   </div>
 
@@ -169,6 +196,10 @@
     <div class="big" id="bigWrap"><span id="iu">—</span> <span class="iu">IU</span></div>
     <div class="key" id="keyLine">—</div>
     <div class="blend" id="blendLine">1:1 blend — this draw splits evenly between the two peptides</div>
+    <div class="log-wrap">
+      <button class="log-btn" id="logBtn">+ Log this dose</button>
+      <span class="last-dose" id="lastDoseInfo"></span>
+    </div>
   </div>
 
   <div class="card">
@@ -179,6 +210,14 @@
   <div class="note">
     <strong>Profile is reference information; the calculator converts a dose you choose into IU.</strong> This tool does not set dose, frequency or cycling — those are clinical decisions. Compounds are research-use; evidence status varies and many lack validated human dosing. Store reconstituted vials at 2–8°C (don't freeze), use within ~3–4 weeks; blends follow the shorter-lived peptide. Always use sterile technique.
   </div>
+  <div class="card" id="histCard">
+    <div class="ctitle" style="display:flex;align-items:center;justify-content:space-between">
+      Dose log
+      <button id="clearHistBtn" style="background:none;border:none;color:var(--mut);font-family:var(--font);font-size:.74rem;cursor:pointer;padding:2px 0;text-decoration:underline;text-underline-offset:2px">Clear all</button>
+    </div>
+    <div class="tscroll"><table><thead><tr><th>Peptide</th><th>Dose</th><th>When</th><th></th></tr></thead><tbody id="histBody"><tr><td colspan="4" class="hist-empty">No doses logged yet.</td></tr></tbody></table></div>
+  </div>
+
   <div class="foot">CC PEP · U-100 basis: 1 mL = 100 IU</div>
 
   <button class="stickyiu" id="stickyiu" aria-hidden="true" tabindex="-1" title="Jump to result">
@@ -244,8 +283,10 @@
       const c=CAT[p.cat]||CAT.Other;
       const el=document.createElement('button');
       el.className='pitem'+(i===curIdx?' on':'');
-      el.innerHTML='<div class="pl"><span class="pdot" style="background:'+c+'"></span><span class="pn">'+p.n+'</span></div><span class="pcat">'+p.cat+'</span>';
+      const starred=getStack().has(p.n);
+      el.innerHTML='<div class="pl"><span class="pdot" style="background:'+c+'"></span><span class="pn">'+p.n+'</span></div><span class="pcat">'+p.cat+'</span><button class="star-btn'+(starred?' on':'')+'" title="'+(starred?'Remove from':'Add to')+' My Stack" aria-label="'+(starred?'Remove from':'Add to')+' My Stack">&#9733;</button>';
       el.onclick=()=>{load(i);[...picklist.children].forEach(x=>x.classList.remove('on'));el.classList.add('on');};
+      el.querySelector('.star-btn').addEventListener('click',e=>{e.stopPropagation();toggleStack(p.n);});
       picklist.appendChild(el);
     });
     if(!shown)picklist.innerHTML='<div class="empty">No peptides match.</div>';
@@ -268,6 +309,7 @@
     $('recMg').textContent='typical: '+cur.mg+'mg';
     $('recBac').textContent='recommended: '+cur.bac+'mL';
     calc(true);
+    updateLastDoseInfo();
   }
   function calc(animate){
     const mg=parseFloat(vialMg.value),bac=parseFloat(bacMl.value),dose=parseFloat(doseMg.value);
@@ -318,7 +360,148 @@
     resultCard.scrollIntoView({behavior:rm?'auto':'smooth',block:'center'});
   });
 
-  renderList();render();load(0);
+  // ─── Tracking ───
+  function getStack(){try{return new Set(JSON.parse(localStorage.getItem('ccpep_stack')||'[]'));}catch{return new Set();}}
+  function saveStack(s){localStorage.setItem('ccpep_stack',JSON.stringify([...s]));}
+  function getLog(){try{return JSON.parse(localStorage.getItem('ccpep_log')||'[]');}catch{return[];}}
+  function saveLog(l){localStorage.setItem('ccpep_log',JSON.stringify(l));}
+
+  function toggleStack(name){
+    const s=getStack();
+    s.has(name)?s.delete(name):s.add(name);
+    saveStack(s);
+    renderStackBar();
+    renderList();
+  }
+
+  function parseHalfHrs(str){
+    if(!str)return null;
+    const s=str.toLowerCase().replace(/~/g,'').trim();
+    if(s==='short')return 1;
+    if(s==='long')return 72;
+    if(s==='mixed')return null;
+    const minM=s.match(/([\d.]+)\s*min/);
+    if(minM)return parseFloat(minM[1])/60;
+    const dayRng=s.match(/([\d.]+)[–\-]([\d.]+)\s*day/);
+    if(dayRng)return((parseFloat(dayRng[1])+parseFloat(dayRng[2]))/2)*24;
+    const dayM=s.match(/([\d.]+)\s*day/);
+    if(dayM)return parseFloat(dayM[1])*24;
+    const hrRng=s.match(/([\d.]+)[–\-]([\d.]+)\s*hr/);
+    if(hrRng)return(parseFloat(hrRng[1])+parseFloat(hrRng[2]))/2;
+    const hrM=s.match(/([\d.]+)\s*hr/);
+    if(hrM)return parseFloat(hrM[1]);
+    return null;
+  }
+
+  function fmtAgo(ts){
+    const diff=Date.now()-ts,m=Math.floor(diff/60000);
+    if(m<1)return'just now';
+    if(m<60)return m+'m ago';
+    const h=Math.floor(m/60);
+    if(h<24)return h+'h ago';
+    return Math.floor(h/24)+'d ago';
+  }
+
+  function fmtSince(ts){
+    const diff=Date.now()-ts,totalM=Math.floor(diff/60000);
+    const d=Math.floor(totalM/1440),h=Math.floor((totalM%1440)/60),m=totalM%60;
+    if(d>0)return d+'d '+(h>0?h+'h':'');
+    if(h>0)return h+'h '+(m>0?m+'m':'');
+    return m+'m';
+  }
+
+  function logDose(){
+    const dose=parseFloat(doseMg.value)||0;
+    if(!cur||!cur.n)return;
+    const log=getLog();
+    log.unshift({n:cur.n,dose:dose,iu:lastIU,ts:Date.now()});
+    saveLog(log);
+    renderHistory();
+    updateLastDoseInfo();
+    renderStackBar();
+    const btn=$('logBtn');
+    if(btn){btn.classList.add('logged');setTimeout(()=>btn.classList.remove('logged'),1800);}
+  }
+
+  function clearLog(){
+    if(!confirm('Clear all dose history?'))return;
+    saveLog([]);
+    renderHistory();
+    updateLastDoseInfo();
+    renderStackBar();
+  }
+
+  function deleteLog(idx){
+    const log=getLog();
+    log.splice(idx,1);
+    saveLog(log);
+    renderHistory();
+    updateLastDoseInfo();
+    renderStackBar();
+  }
+
+  function updateLastDoseInfo(){
+    const el=$('lastDoseInfo');
+    if(!el||!cur)return;
+    const log=getLog();
+    const entry=log.find(e=>e.n===cur.n);
+    if(!entry){el.textContent='No doses logged for '+cur.n+'.';return;}
+    const halfHrs=parseHalfHrs(cur.half);
+    const elapsedHrs=(Date.now()-entry.ts)/3600000;
+    let pct='';
+    if(halfHrs){const p=Math.min(Math.round((elapsedHrs/halfHrs)*100),999);pct=' — '+p+'% of half-life elapsed';}
+    el.textContent='Last: '+fmtAgo(entry.ts)+' ('+fmtSince(entry.ts)+' ago)'+pct+'.';
+  }
+
+  function renderHistory(){
+    const el=$('histBody');
+    if(!el)return;
+    const log=getLog().slice(0,20);
+    if(!log.length){el.innerHTML='<tr><td colspan="4" class="hist-empty">No doses logged yet.</td></tr>';return;}
+    el.innerHTML=log.map((e,i)=>{
+      const pep=PEPS.find(p=>p.n===e.n);
+      const c=pep?CAT[pep.cat]||CAT.Other:'#94a3b8';
+      const dot='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:6px;vertical-align:middle"></span>';
+      return'<tr>'
+        +'<td>'+dot+e.n+'</td>'
+        +'<td class="iu">'+(e.dose?fmtDose(e.dose):'—')+'</td>'
+        +'<td style="color:var(--mut)">'+fmtAgo(e.ts)+'</td>'
+        +'<td><button class="de-del" onclick="deleteLog('+i+')" title="Delete">✕</button></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  function renderStackBar(){
+    const el=$('stackBar');
+    if(!el)return;
+    const s=getStack(),log=getLog();
+    if(!s.size){el.innerHTML='';el.style.display='none';return;}
+    el.style.display='flex';
+    el.innerHTML=[...s].map(name=>{
+      const pep=PEPS.find(p=>p.n===name);
+      const c=pep?CAT[pep.cat]||CAT.Other:'#94a3b8';
+      const last=log.find(e=>e.n===name);
+      const when=last?'<span class="sc-when">'+fmtSince(last.ts)+' ago</span>':'';
+      return'<button class="stack-chip" onclick="loadByName(\''+name.replace(/'/g,"\\'")+'\')">'+
+        '<span class="sc-name"><span class="sc-dot" style="background:'+c+'"></span>'+name+'</span>'+when+
+        '</button>';
+    }).join('');
+  }
+
+  function loadByName(name){
+    const i=PEPS.findIndex(p=>p.n===name);
+    if(i<0)return;
+    load(i);
+    [...picklist.children].forEach(x=>x.classList.remove('on'));
+    renderList();
+  }
+
+  $('logBtn').addEventListener('click',logDose);
+  $('clearHistBtn').addEventListener('click',clearLog);
+
+  setInterval(()=>{renderHistory();renderStackBar();updateLastDoseInfo();},60000);
+
+  renderList();render();load(0);renderStackBar();renderHistory();
 </script>
 </body>
 </html>
